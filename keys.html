@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="build-version" content="2026-09-25-01">
+<meta name="build-version" content="2026-09-25-03">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>DEC evidence pack – Seal key settings (CSR Sustain)</title>
@@ -119,6 +119,7 @@ async function loadKey(pair){
 }
 async function checkKey(){
   const st=$("keyStatus");
+  if (location.protocol==="file:"){ st.className="note bad"; st.textContent="This is a copy saved on your computer. Seal keys set up here don't carry over to the website. Use https://csrsustain.github.io/dec-evidence-pack/keys.html instead."; $("kCreate").hidden=true; return; }
   if (!window.crypto || !crypto.subtle){ st.className="note bad"; st.textContent="This browser can't create seals here. Open this page from its https:// GitHub Pages address in Chrome, Edge or Safari."; return; }
   const saved = store.get(KEY_STORE);
   if (saved){ try{ await loadKey(saved); }catch(e){ privKey=null; } }
@@ -138,10 +139,19 @@ $("kCreate").addEventListener("click", async ()=>{
   saveFile("csr-dec-seal-key-BACKUP-keep-private.json", JSON.stringify(pair,null,2));
 });
 $("kImport").addEventListener("change", async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  try{ const pair=JSON.parse(await f.text()); if(!pair.priv||!pair.pub) throw 0; await loadKey(pair); store.set(KEY_STORE,pair); }
-  catch(err){ $("keyStatus").className="note bad"; $("keyStatus").textContent="That file isn't a valid seal key backup."; e.target.value=""; return; }
-  e.target.value=""; checkKey();
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  const st=$("keyStatus"); const fail=t=>{ st.className="note bad"; st.textContent=t; };
+  let text=""; try{ text=(await f.text()).replace(/^\uFEFF/,"").trim(); }catch(x){ return fail(`“${f.name}” couldn't be read. Save it to this computer first, then import it again.`); }
+  let data; try{ data=JSON.parse(text); }catch(x){
+    return fail(`“${f.name}” isn't a key backup: its contents aren't in the expected format. This usually happens when the file was opened and re-saved, or saved from a preview as a web page. Download the original file again (don't open it) and import that.`); }
+  let pair=null;
+  if (data && data.priv && data.pub) pair=data;
+  else if (data && data.kty==="EC" && data.d) pair={priv:cleanJwk(data), pub:cleanJwk({kty:data.kty,crv:data.crv,x:data.x,y:data.y})};
+  else if (data && data.kty==="EC") return fail(`“${f.name}” is the public key (public-key.json). That file only checks seals and can't create them. Import the file named csr-dec-seal-key-BACKUP-keep-private.json instead.`);
+  else return fail(`“${f.name}” isn't a seal key backup. Import the file named csr-dec-seal-key-BACKUP-keep-private.json.`);
+  try{ await loadKey(pair); }catch(x){ return fail(`“${f.name}” looks like a key backup but is damaged. Download the original file again and import that.`); }
+  store.set(KEY_STORE,{priv:cleanJwk(pair.priv),pub:cleanJwk(pair.pub),created:pair.created||new Date().toISOString()});
+  checkKey();
 });
 $("kBackup").addEventListener("click",()=>saveFile("csr-dec-seal-key-BACKUP-keep-private.json", JSON.stringify(keyPair,null,2)));
 $("kPublic").addEventListener("click",()=>saveFile("public-key.json", JSON.stringify(keyPair.pub,null,2)));
