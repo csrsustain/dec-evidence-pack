@@ -9,15 +9,16 @@ No server, no database: pack data travels inside the link, and the signed PDF is
 |---|---|---|
 | `index.html` | Clients | Opens a pack from its link, checks the seal, collects opening hours and signature, produces the signed PDF |
 | `prepare.html` | CSR Sustain staff | Enter site data, create sealed client links |
+| `keys.html` | CSR Sustain staff | Seal key settings: create, import or back up the key |
 | `public-key.json` | Created by you (see below) | Lets the client page check the seal |
 
 ## First-time setup
 
 1. Create a repository (for example `dec-evidence-pack`) and upload `index.html`, `prepare.html` and this README.
 2. Settings → Pages → deploy from the `main` branch, root folder. Wait for the site address, e.g. `https://<account>.github.io/dec-evidence-pack/`.
-3. Open `…/prepare.html` in Chrome, Edge or Safari. Click **Create seal key**. A key backup file downloads – store it somewhere private (not in GitHub).
+3. Open `…/keys.html` in Chrome, Edge or Safari. Click **Create seal key**. A key backup file downloads – store it somewhere private (not in GitHub).
 4. Click **Download public-key.json** and upload that file to the repository root.
-5. Wait a minute and reload `prepare.html`. The seal status should read "Seal key ready and matches the website".
+5. Wait a minute and reload `keys.html`. The seal status should read "Seal key ready and matches the website".
 
 ## Everyday use
 
@@ -28,7 +29,7 @@ No server, no database: pack data travels inside the link, and the signed PDF is
 
 ## Keys
 
-- The **key backup** is the private key. Anyone with it can create valid links, so keep it private. To use another computer or give a colleague access, import it with **Import key backup** on `prepare.html`.
+- The **key backup** is the private key. Anyone with it can create valid links, so keep it private. To use another computer or give a colleague access, import it with **Import key backup** on `keys.html`.
 - If the backup is lost, create a new key and upload the new `public-key.json`. Links issued with the old key will stop opening.
 - Never upload the key backup file to GitHub.
 
