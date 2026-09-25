@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="build-version" content="2026-09-25-01">
+<meta name="build-version" content="2026-09-25-02">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>DEC evidence pack – Preparation (CSR Sustain)</title>
@@ -74,7 +74,7 @@ tr.flag td{background:var(--warn-soft)}
   </div>
 </header>
 <main>
-  <section class="panel" id="keyPanel">
+  <section class="panel" id="keyPanel" hidden>
     <h2>Seal key</h2>
     <p class="hint">Every link is sealed with a private key held only in this browser. The client page checks the seal and refuses any link that has been altered.</p>
     <div class="note" id="keyStatus">Checking…</div>
@@ -158,6 +158,7 @@ tr.flag td{background:var(--warn-soft)}
     <p class="hint">Stored only in this browser, so you can reload a pack to correct it or reuse it next year.</p>
     <div class="tablewrap"><table><thead><tr><th>Site</th><th>Reference</th><th>Created</th><th>Seal code</th><th></th></tr></thead><tbody id="recent"></tbody></table></div>
   </section>
+  <p style="text-align:center;margin:8px 0 0"><button type="button" id="keyToggle" style="background:none;border:0;color:var(--ink-2);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer">Seal key settings</button></p>
 </main>
 
 <script>
@@ -190,15 +191,16 @@ async function loadKey(pair){
 }
 async function checkKey(){
   const st=$("keyStatus");
-  if (!window.crypto || !crypto.subtle){ st.className="note bad"; st.textContent="This browser can't create seals here. Open this page from its https:// GitHub Pages address in Chrome, Edge or Safari."; return; }
+  if (!window.crypto || !crypto.subtle){ $("keyPanel").hidden=false; st.className="note bad"; st.textContent="This browser can't create seals here. Open this page from its https:// GitHub Pages address in Chrome, Edge or Safari."; return; }
   const saved = store.get(KEY_STORE);
   if (saved){ try{ await loadKey(saved); }catch(e){ privKey=null; } }
   $("kCreate").hidden = !!privKey; $("kBackup").hidden = !privKey; $("kPublic").hidden = !privKey;
-  if (!privKey){ st.className="note warn"; st.textContent="No seal key in this browser. First time: create one. Another computer: import the key backup."; return; }
+  const showPanel=()=>{ $("keyPanel").hidden=false; };
+  if (!privKey){ showPanel(); st.className="note warn"; st.textContent="No seal key in this browser. First time: create one. Another computer: import the key backup."; return; }
   let published=null;
   try{ const r=await fetch("public-key.json",{cache:"no-store"}); if(r.ok) published=await r.json(); }catch(e){}
-  if (!published){ st.className="note warn"; st.textContent="Seal key ready, but public-key.json isn't on the website yet. Download it and upload it to the repository, otherwise clients will see an error."; }
-  else if (published.x!==keyPair.pub.x || published.y!==keyPair.pub.y){ st.className="note bad"; st.textContent="The public-key.json on the website doesn't match the key in this browser. Clients would reject your links. Import the correct key backup, or upload this browser's public-key.json."; }
+  if (!published){ showPanel(); st.className="note warn"; st.textContent="Seal key ready, but public-key.json isn't on the website yet. Download it and upload it to the repository, otherwise clients will see an error."; }
+  else if (published.x!==keyPair.pub.x || published.y!==keyPair.pub.y){ showPanel(); st.className="note bad"; st.textContent="The public-key.json on the website doesn't match the key in this browser. Clients would reject your links. Import the correct key backup, or upload this browser's public-key.json."; }
   else { st.className="note"; st.textContent="Seal key ready and matches the website. Links from this browser will open for clients."; }
 }
 $("kCreate").addEventListener("click", async ()=>{
@@ -274,7 +276,7 @@ let current=null;
 $("makeLink").addEventListener("click", async ()=>{
   const err=$("mkErr"); err.textContent="";
   const probs=[];
-  if(!privKey) probs.push("set up the seal key at the top of the page");
+  if(!privKey) probs.push("set up the seal key (see Seal key settings at the bottom of the page)");
   if(!$("siteName").value.trim()) probs.push("enter the site name");
   if(!$("postcode").value.trim()) probs.push("enter the postcode");
   if(!$("pStart").value) probs.push("choose the consumption period start");
@@ -329,6 +331,7 @@ function renderRecent(){
     td.append(bL,bC,bD); tr.appendChild(td); tb.appendChild(tr); });
 }
 
+$("keyToggle").addEventListener("click",()=>{ $("keyPanel").hidden=!$("keyPanel").hidden; if(!$("keyPanel").hidden) $("keyPanel").scrollIntoView({behavior:"smooth"}); });
 buildTable([]); renderRecent(); checkKey();
 
 </script>
